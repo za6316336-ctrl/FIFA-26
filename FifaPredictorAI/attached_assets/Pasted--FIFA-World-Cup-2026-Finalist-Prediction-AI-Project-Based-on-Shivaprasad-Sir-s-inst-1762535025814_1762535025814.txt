@@ -1,0 +1,76 @@
+# 🏆 FIFA World Cup 2026 Finalist Prediction (AI Project)
+
+# 👨‍🏫 Based on Shivaprasad Sir's instructions:
+# Only 28 of 48 teams have qualified, so we’ll use one of two approaches:
+# 1️⃣ Dynamic update (add teams as they qualify)
+# 2️⃣ User-favourite simulation (predict remaining 20 teams from top 100 FIFA rankings)
+
+# This project covers:
+# - Data collection (API/scraper)
+# - Feature engineering
+# - Model training & evaluation
+# - Dynamic data update or simulation
+# - Prediction and visualization
+
+# ======================================================
+# 🚀 STEP 1: Import libraries
+import pandas as pd
+import numpy as np
+import random
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+# ======================================================
+# ⚙️ STEP 2: Load Base Data (all football nations)
+# For now, we’ll use a dummy example CSV structure.
+# Later, you can replace this with real data scraped from FIFA.com or other APIs.
+
+# Example structure
+columns = ['Team', 'FIFA_Ranking', 'Goals_Scored', 'Goals_Conceded', 'Avg_Age', 'Win_Rate', 'Qualified']
+data = [
+    ['Argentina', 1, 35, 10, 28.5, 0.83, True],
+    ['France', 2, 33, 12, 27.9, 0.81, True],
+    ['Brazil', 3, 40, 9, 26.7, 0.85, True],
+    # add all 28 qualified + simulate 20 more if needed
+]
+
+df = pd.DataFrame(data, columns=columns)
+
+# ======================================================
+# 🧩 STEP 3: Simulate remaining teams if not yet qualified
+# Choose 20 random teams from top 100 (simulation approach)
+if df['Qualified'].sum() < 48:
+    top_100_teams = [f"Team_{i}" for i in range(1, 101)]
+    already_qualified = df['Team'].tolist()
+    remaining_teams = [t for t in top_100_teams if t not in already_qualified]
+    simulated_teams = random.sample(remaining_teams, 48 - len(df))
+    for team in simulated_teams:
+        df.loc[len(df)] = [team, random.randint(10, 100), random.randint(5, 30),
+                           random.randint(5, 25), round(random.uniform(25, 30), 1),
+                           round(random.uniform(0.4, 0.8), 2), True]
+
+# ======================================================
+# 🧠 STEP 4: Prepare data for model training
+X = df[['FIFA_Ranking', 'Goals_Scored', 'Goals_Conceded', 'Avg_Age', 'Win_Rate']]
+y = np.where(df['Team'].isin(['Argentina', 'France', 'Brazil']), 1, 0)  # 1 = strong contender (example)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# ======================================================
+# 🤖 STEP 5: Train Model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# ======================================================
+# 📊 STEP 6: Evaluate
+y_pred = model.predict(X_test)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+# ======================================================
+# 🏁 STEP 7: Predict Finalists
+df['Finalist_Prob'] = model.predict_proba(X)[:, 1]
+finalists = df.sort_values(by='Finalist_Prob', ascending=False).head(2)
+
+print("\nPredicted Finalists for FIFA 2026:\n", finalists[['Team', 'Finalist_Prob']])
